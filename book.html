@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>KAIM — Full Guide</title>
+<style>
+  :root{
+    --ink:#15201c;
+    --paper:#f4efe4;
+    --moss:#2f4a3c;
+    --rust:#a8552c;
+    --gold:#b08d3e;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;background:var(--paper);font-family:Georgia,'Times New Roman',serif;}
+
+  #topbar{
+    position:fixed; top:0; left:0; right:0; z-index:50;
+    display:flex; align-items:center; gap:8px;
+    padding:10px 12px;
+    background:var(--ink);
+    color:#fffdf8;
+    font-family:ui-monospace,'SF Mono',Menlo,Consolas,'Courier New',monospace;
+    font-size:0.78rem;
+  }
+  #topbar button{
+    background:transparent;
+    border:1.5px solid #fffdf8;
+    color:#fffdf8;
+    border-radius:4px;
+    padding:6px 10px;
+    font-family:inherit;
+    font-size:0.78rem;
+    cursor:pointer;
+  }
+  #topbar button:disabled{opacity:0.35;}
+  #chapterSelect{
+    flex:1;
+    background:#fffdf8;
+    color:var(--ink);
+    border:none;
+    border-radius:4px;
+    padding:7px 8px;
+    font-family:inherit;
+    font-size:0.75rem;
+  }
+
+  #readerFrame{
+    position:fixed;
+    top:50px; bottom:0; left:0; right:0;
+    width:100%; height:calc(100% - 50px);
+    border:none;
+    background:var(--paper);
+  }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <button id="backBtn" title="Back to Calculator">&larr;</button>
+  <button id="prevBtn" title="Previous Chapter">&#8249;</button>
+  <select id="chapterSelect"></select>
+  <button id="nextBtn" title="Next Chapter">&#8250;</button>
+</div>
+
+<iframe id="readerFrame" src=""></iframe>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+
+  const CHAPTERS = [
+    { file: 'cover.xhtml',        title: 'Cover' },
+    { file: 'section0001.xhtml',  title: 'Title Page' },
+    { file: 'section0002.xhtml',  title: 'Introduction & Table of Contents' },
+    { file: 'section0003.xhtml',  title: 'NVIDIA Case Study + 8-Step Methodology' },
+    { file: 'section0004.xhtml',  title: 'Appendix 1 — Magnificent 7' },
+    { file: 'section0005.xhtml',  title: 'Appendix 2 — Non-Tech Large Caps' },
+    { file: 'section0006.xhtml',  title: 'References & Data Sources' },
+  ];
+
+  const frame = $('readerFrame');
+  const select = $('chapterSelect');
+
+  CHAPTERS.forEach((ch, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = ch.title;
+    select.appendChild(opt);
+  });
+
+  let currentIndex = 0;
+
+  function loadChapter(index, anchor){
+    if(index < 0 || index >= CHAPTERS.length) return;
+    currentIndex = index;
+    select.value = index;
+    let url = 'book/sections/' + CHAPTERS[index].file;
+    if(anchor) url += '#' + anchor;
+    frame.src = url;
+    $('prevBtn').disabled = currentIndex <= 0;
+    $('nextBtn').disabled = currentIndex >= CHAPTERS.length - 1;
+  }
+
+  $('backBtn').addEventListener('click', () => { window.location.href = 'index.html'; });
+  $('prevBtn').addEventListener('click', () => loadChapter(currentIndex - 1));
+  $('nextBtn').addEventListener('click', () => loadChapter(currentIndex + 1));
+  select.addEventListener('change', () => loadChapter(parseInt(select.value)));
+
+  frame.addEventListener('load', () => {
+    try {
+      const doc = frame.contentDocument;
+      if(!doc) return;
+      doc.querySelectorAll('a[href]').forEach(a => {
+        a.addEventListener('click', (e) => {
+          const href = a.getAttribute('href');
+          if(!href || href.startsWith('http')) return;
+          e.preventDefault();
+          const [file, anchor] = href.split('#');
+          const idx = CHAPTERS.findIndex(c => c.file === file);
+          if(idx === -1) return;
+          loadChapter(idx, anchor);
+        });
+      });
+    } catch(err){
+      console.error('Could not attach link listeners inside reader frame:', err);
+    }
+  });
+
+  loadChapter(0);
+})();
+</script>
+
+</body>
+</html>
